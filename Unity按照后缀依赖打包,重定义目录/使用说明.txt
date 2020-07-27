@@ -1,0 +1,3 @@
+放入Unity
+在prefab 上右键,找到MyEditor->ExportPackageQuickly
+			showExportWindow
