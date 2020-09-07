@@ -25,15 +25,15 @@ public class TapTouch : MonoBehaviour
     public float rotateSpeed = 1f;
     public float angleX;
     public float angleY;
-    public float angleXMin = 10;
-    public float angleXMax = 90;
+    public Vector2 limitAngleX = new Vector2(10,90);
+    public Vector2 limitAngleY = new Vector2(10,90);
     public float inertia = 3;      //惯性
+    public bool canPan=true;
 
-    private Transform target;
+    public Transform target;
     private Vector3 lastTargetAngle;
 
     private Bounds limitBounds;
-
 
     private void Awake()
     {
@@ -44,8 +44,9 @@ public class TapTouch : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        InitTarget();
         InitCamera();
+        InitTarget();
+
     }
 
     // Update is called once per frame
@@ -65,7 +66,7 @@ public class TapTouch : MonoBehaviour
 
     public void Set(Vector3 pos, float rotationXAxis, float rotationYAxis, float distance)
     {
-        targetPosition = pos;
+        //targetPosition = pos;
         angleX = rotationXAxis;
         angleY = DealAngleY(rotationYAxis);
         this.distance = distance;
@@ -140,7 +141,7 @@ public class TapTouch : MonoBehaviour
         delta *= panSpeed * Time.deltaTime * 0.1f * distance;
         Vector3 vUp = Quaternion.Euler(0, 90, 0) * target.right;
         Vector3 temp = targetPosition + target.right * -delta.x + vUp * delta.y;
-        targetPosition = ApplyLimitBounds(temp.x, temp.z);
+        targetPosition = ApplyLimitBounds(temp.x, targetPosition.y, temp.z);
     }
 
     /// <summary>
@@ -152,7 +153,10 @@ public class TapTouch : MonoBehaviour
         float factor = Time.deltaTime * 20 * rotateSpeed;
         angleX += -delta.y * factor;
         angleY += delta.x * factor;
-        angleX = ClampAngle(angleX, angleXMin, angleXMax);
+        if (limitAngleX.x!=0 || limitAngleX.y!=0)
+            angleX = ClampAngle(angleX, limitAngleX.x, limitAngleX.y);
+        if (limitAngleY.x != 0 || limitAngleY.y != 0)
+            angleY = ClampAngle(angleY, limitAngleY.x, limitAngleY.y);
     }
 
     /// <summary>
@@ -174,8 +178,7 @@ public class TapTouch : MonoBehaviour
         var dir = new Vector3(angleX, angleY, 0);
         lastTargetAngle = Vector3.Lerp(lastTargetAngle, dir, 0.02f * inertia);
         target.eulerAngles = lastTargetAngle;
-        target.position = Vector3.Lerp(target.position, targetPosition, 0.02f * inertia);
-
+        if (canPan) target.position = Vector3.Lerp(target.position, targetPosition, 0.02f * inertia);
         Vector3 dirPos = Vector3.back * distance;
         transform.localPosition = Vector3.Lerp(transform.localPosition, dirPos, 0.02f * inertia);
     }
@@ -209,6 +212,8 @@ public class TapTouch : MonoBehaviour
     public void SetLimitBounds(Bounds bounds)
     {
         limitBounds = bounds;
+        RemoveInputGestureEvents();
+        InitInputGestureEvents();
         SetMaxDistance();
     }
 
@@ -222,11 +227,11 @@ public class TapTouch : MonoBehaviour
         {
             float tan = Mathf.Tan(Camera.main.fieldOfView / 2 * Mathf.Deg2Rad);
             float helfC = Vector3.Distance(limitBounds.center, limitBounds.center + limitBounds.extents);
-            maxDistance = helfC / tan;
+            //maxDistance = helfC / tan;
         }
     }
 
-    private Vector3 ApplyLimitBounds(float x, float z)
+    private Vector3 ApplyLimitBounds(float x,float y, float z)
     {
         if (limitBounds.extents != Vector3.zero)
         {
@@ -235,7 +240,7 @@ public class TapTouch : MonoBehaviour
             x = Mathf.Clamp(x, v1.x, v2.x);
             z = Mathf.Clamp(z, v1.z, v2.z);
         }
-        return new Vector3(x, 0, z);
+        return new Vector3(x, y, z);
     }
     #endregion
 
@@ -243,7 +248,7 @@ public class TapTouch : MonoBehaviour
 
     void InputGesture_onDoubleClick(Vector2 vector2)
     {
-        Reset();
+        //Reset();
     }
 
     #endregion
